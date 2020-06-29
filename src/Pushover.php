@@ -70,7 +70,7 @@ class Pushover
 	 *
 	 * @return Message|null
 	 */
-	public function sendMessage(Message $message): ?Message
+	public function sendMessage(Message $message): Message
 	{
 		$data = $message->toPost();
 		
@@ -81,22 +81,11 @@ class Pushover
 
 		if (! $message->validate($this->errors))
 		{
-			if ($this->config->silent)
-			{
-				return null;
-			}
-
 			throw PushoverException::forInvalidMessage();
 		}
 
 		// Add required auth info
-		$auth = $this->auth(['user', 'token']);
-		if (empty($auth))
-		{
-			return null;
-		}
-
-		$data = array_merge($data, $auth);
+		$data = array_merge($data, $this->getAuthValues(['user', 'token']));
 
 		// Check the throttle
 		$this->throttle();
@@ -105,31 +94,16 @@ class Pushover
 		$response = $this->send('post', 'messages.json', $data, (bool) $message->attachment);
 		
 		// Parse the results
-		$result = json_decode($response->getBody());
-
-		if ($response->getStatusCode() != 200)
-		{
-			if (! empty($result->errors))
-			{
-				$this->errors = $result->errors;
-			}
-			else
-			{
-				$this->errors[] = lang('Pushover.invalidStatus', $result->status ?? $response->getStatusCode());
-			}
-
-			return null;
-		}
+		$result = $this->parseResponse($response);
 
 		// Update the Message with response data
-		$message->status  = $result->status;
-		$message->request = $result->request;
+		$message->status  = $result['status'];
+		$message->request = $result['request'];
 
 		// Check if we need to store a copy in the database
 		if ($this->config->database)
 		{
-			$id = model(MessageModel::class)->insert($message);
-			$message = model(MessageModel::class)->find($id);
+			model(MessageModel::class)->insert($message);
 		}
 
 		return $message;
@@ -157,9 +131,9 @@ class Pushover
 	 *
 	 * @param $fields  The requested auth fields
 	 *
-	 * @return array|null
+	 * @return array
 	 */
-	protected function auth(array $fields = ['user', 'token']): ?array
+	protected function getAuthValues(array $fields = ['user', 'token']): array
 	{
 		$return = [];
 
@@ -167,11 +141,6 @@ class Pushover
 		{
 			if (empty($this->config->$field))
 			{
-				if ($this->config->silent)
-				{
-					return null;
-				}
-
 				throw PushoverException::forMissingAuthField($field);
 			}
 
@@ -217,5 +186,65 @@ class Pushover
 		}
 
 		return $this->client->request($method, $endpoint);
+	}
+
+	/**
+	 * Process the API response. Since the API can return content with failing
+	 * HTTP response codes we process the body first.
+	 *
+	 * @param ResponseInterface $response  Response from the API
+	 *
+	 * @return array  Parsed and validated response body
+	 */
+	public function parseResponse(ResponseInterface $response): array
+	{
+		// Verify the response body
+		$body = $response->getBody();
+		if (empty($body))
+		{
+			$this->errors[] = lang('Pushover.emptyResponse');
+			throw new PushoverException(lang('Pushover.emptyResponse'));
+		}
+
+		// Decode the body
+		$result = json_decode($body, true);
+		if ($result === false || ! isset($result['status']) || ! isset($result['request']))
+		{
+			$this->errors[] = lang('Pushover.invalidResponse', $body);
+			throw new PushoverException(lang('Pushover.invalidResponse', $body));
+		}
+
+		// Harvest any errors
+		if (! empty($result['errors']))
+		{
+			$this->errors = $result['errors'];
+		}
+
+		// Validate the result
+		$validation = service('validation')->reset()->setRules([
+			'status'   => 'required|is_natural',
+			'request'  => 'required|alpha_dash|min_length[32]',
+		]);
+		if (! $validation->run($result))
+		{
+			$this->errors = array_merge($this->errors, $validation->getErrors());
+			throw new PushoverException(lang('Pushover.invalidResponse', $body));
+		}
+
+		// Check for failing status
+		if ($result['status'] !== 1)
+		{
+			$this->errors[] = lang('Pushover.invalidStatus', $result['status']);
+			throw new PushoverException(lang('Pushover.invalidStatus', $result['status']));		
+		}
+
+		// Handle the HTTP response code
+		if ($response->getStatusCode() !== 200)
+		{
+			$this->errors[] = lang('Pushover.invalidCode', $response->getStatusCode());
+			throw new PushoverException(lang('Pushover.invalidCode', $response->getStatusCode()));
+		}
+
+		return $result;
 	}
 }

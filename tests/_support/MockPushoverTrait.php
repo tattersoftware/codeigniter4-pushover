@@ -16,7 +16,6 @@ trait MockPushoverTrait
 	{
 		$this->config = new \Tatter\Pushover\Config\Pushover();
 
-		$this->config->silent   = true;
 		$this->config->throttle = 2;
 		$this->config->user     = 'abcdef';
 		$this->config->token    = 'xyz123';

@@ -3,6 +3,7 @@
 use CodeIgniter\Debug\Timer;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Services;
+use Tatter\Pushover\Exceptions\PushoverException;
 use Tatter\Pushover\Entities\Message;
 use Tatter\Pushover\Test\MockPushover;
 
@@ -40,9 +41,12 @@ class LibraryTest extends CIUnitTestCase
 	public function testSendInvalidMessageFails()
 	{
 		$this->message->url = 'bad url';
-
 		$this->assertFalse($this->message->validate());
-		$this->assertNull($this->pushover->sendMessage($this->message));
+
+		$this->expectException(PushoverException::class);
+		$this->expectExceptionMessage(lang('Pushover.invalidMessage'));
+
+		$this->pushover->sendMessage($this->message);
 	}
 
 	public function testSendMessageThrottles()

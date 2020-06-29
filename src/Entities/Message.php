@@ -22,14 +22,10 @@ class Message extends Entity
 
 	/**
 	 * Interface with the service to send this Message
-	 *
-	 * @return ResponseInterface  Response from the CURLRequest
 	 */
-	public function send(): ResponseInterface
+	public function send()
 	{
-		$result = service('pushover')->sendMessage($this);
-
-		return $result;
+		service('pushover')->sendMessage($this);
 	}
 
 	/**
@@ -73,7 +69,7 @@ class Message extends Entity
 		$errors = [];
 		$data = $this->toPost();
 
-		$validation = service('validation')->setRules([
+		$validation = service('validation')->reset()->setRules([
 			'message'   => 'required|string',
 			'url'       => 'permit_empty|valid_url',
 			'html'      => 'permit_empty|in_list[0,1]',
@@ -95,8 +91,6 @@ class Message extends Entity
 		{
 			$errors[] = lang('Pushover.htmlAndMonospace');
 		}
-
-		$validation->reset();
 
 		return empty($errors);
 	}
