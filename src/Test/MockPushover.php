@@ -13,6 +13,13 @@ use Tatter\Pushover\Pushover;
 class MockPushover extends Pushover
 {
 	/**
+	 * Whether this send() should succeed
+	 *
+	 * @var bool
+	 */
+	public $success = true;
+
+	/**
 	 * Valid endpoints
 	 *
 	 * @var array
@@ -52,6 +59,14 @@ class MockPushover extends Pushover
 			throw new PushoverException('Invalid endpoint: ' . $endpoint);
 		}
 
-		return service('response');
+		$response = service('response');
+
+		/*
+		{"status":1,"request":"647d2300-702c-4b38-8b2f-d56326ae460b"}
+
+		{"user":"invalid","errors":["user identifier is invalid"], "status":0,"request":"5042853c-402d-4a18-abcb-168734a801de"}
+		*/
+
+		return $response;
 	}
 }

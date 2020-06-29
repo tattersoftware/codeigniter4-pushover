@@ -16,6 +16,6 @@ class MessageModel extends Model
 	protected $allowedFields = [
 		'message', 'title', 'url', 'url_title', 'html', 'monospace',
 		'sound', 'attachment', 'device', 'timestamp',
-		'priority', 'retry', 'expire', 'callback', 'receipt',
+		'priority', 'retry', 'expire', 'callback', 'receipt', 'request',
 	];
 }

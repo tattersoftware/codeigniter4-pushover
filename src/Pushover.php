@@ -5,6 +5,7 @@ use CodeIgniter\HTTP\CURLRequest;
 use CodeIgniter\HTTP\ResponseInterface;
 use Tatter\Pushover\Exceptions\PushoverException;
 use Tatter\Pushover\Entities\Message;
+use Tatter\Pushover\Models\MessageModel;
 
 /**
  * Class Pushover
@@ -67,9 +68,9 @@ class Pushover
 	 *
 	 * @param Message $message  The Message to send
 	 *
-	 * @return ResponseInterface|null
+	 * @return Message|null
 	 */
-	public function sendMessage(Message $message): ?ResponseInterface
+	public function sendMessage(Message $message): ?Message
 	{
 		$data = $message->toPost();
 		
@@ -100,7 +101,38 @@ class Pushover
 		// Check the throttle
 		$this->throttle();
 
-		return $this->send('post', 'messages.json', $data, (bool) $message->attachment);
+		// Make the API call
+		$response = $this->send('post', 'messages.json', $data, (bool) $message->attachment);
+		
+		// Parse the results
+		$result = json_decode($response->getBody());
+
+		if ($response->getStatusCode() != 200)
+		{
+			if (! empty($result->errors))
+			{
+				$this->errors = $result->errors;
+			}
+			else
+			{
+				$this->errors[] = lang('Pushover.invalidStatus', $result->status ?? $response->getStatusCode());
+			}
+
+			return null;
+		}
+
+		// Update the Message with response data
+		$message->status  = $result->status;
+		$message->request = $result->request;
+
+		// Check if we need to store a copy in the database
+		if ($this->config->database)
+		{
+			$id = model(MessageModel::class)->insert($message);
+			$message = model(MessageModel::class)->find($id);
+		}
+
+		return $message;
 	}
 
 	//--------------------------------------------------------------------

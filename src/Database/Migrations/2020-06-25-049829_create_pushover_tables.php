@@ -22,7 +22,8 @@ class CreatePushoverTables extends Migration
 			'retry'         => ['type' => 'int', 'null' => true],
 			'expire'        => ['type' => 'int', 'null' => true],
 			'callback'      => ['type' => 'varchar', 'constraint' => 255, 'null' => true],
-			'receipt'       => ['type' => 'varchar', 'constraint' => 31, 'null' => true],
+			'receipt'       => ['type' => 'varchar', 'constraint' => 255, 'null' => true],
+			'request'       => ['type' => 'varchar', 'constraint' => 255, 'null' => true],
 			'created_at'    => ['type' => 'datetime', 'null' => true],
 			'updated_at'    => ['type' => 'datetime', 'null' => true],
 		];
