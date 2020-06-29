@@ -20,6 +20,21 @@ class MockPushover extends Pushover
 	protected $endpoints = ['messages.json'];
 
 	/**
+	 * (Re)set the throttle
+	 *
+	 * @param int $seconds
+	 */
+	public static function throttle(int $seconds = null)
+	{
+		if (! is_null($seconds))
+		{
+			$seconds += time();
+		}
+
+		self:$throttle = $seconds;
+	}
+
+	/**
 	 * Send an API request
 	 *
 	 * @param string $method  HTTP method to use

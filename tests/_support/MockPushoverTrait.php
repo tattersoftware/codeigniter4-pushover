@@ -20,5 +20,8 @@ trait MockPushoverTrait
 		$client = Services::curlrequest(['base_uri' => $this->config->baseUrl]);
 
 		$this->pushover = new MockPushover($this->config, $client);
+
+		// Reset the throttle
+		MockPushover::throttle();
 	}
 }

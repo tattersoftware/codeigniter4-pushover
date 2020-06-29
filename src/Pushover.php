@@ -101,7 +101,18 @@ class Pushover
 		$data['user']  = $this->config->user;
 		$data['token'] = $this->config->token;
 
-		return $this->send('post', 'messages.json', $data, (bool) $message->attachment);
+		// Check the throttle
+		if (is_int(self::$throttle) && time() < self::$throttle)
+		{
+			sleep(max(5, time() - self::$throttle));
+		}
+
+		$result = $this->send('post', 'messages.json', $data, (bool) $message->attachment);
+
+		// Set the throttle
+		self::$throttle = time() + $this->config->throttle;
+
+		return $result;
 	}
 
 	/**
@@ -116,12 +127,6 @@ class Pushover
 	 */
 	public function send(string $method, string $endpoint, array $data = null, bool $multipart = false): ResponseInterface
 	{
-		// Check the throttle
-		if (is_int(self::$throttle) && time() < self::$throttle)
-		{
-			sleep(max(5, time() - self::$throttle));
-		}
-
 		if (empty($data['user']) || empty($data['token']))
 		{
 			if ($this->config->silent)

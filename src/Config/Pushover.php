@@ -9,7 +9,7 @@ class Pushover extends BaseConfig
 	 *
 	 * @var boolean
 	 */
-	public $debug = ENVIRONMENT !== 'production';
+	public $debug = (ENVIRONMENT !== 'production');
 
 	/**
 	 * Whether Messages should be logged in the database.
@@ -31,6 +31,13 @@ class Pushover extends BaseConfig
 	 * @var string
 	 */
 	public $baseUrl = 'https://api.pushover.net/1/';
+
+	/**
+	 * Seconds to delay between metered calls
+	 *
+	 * @var int
+	 */
+	public $throttle = 5;
 
 	/**
 	 * User secret key

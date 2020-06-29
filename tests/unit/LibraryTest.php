@@ -1,5 +1,6 @@
 <?php
 
+use CodeIgniter\Debug\Timer;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Services;
 use Tatter\Pushover\Entities\Message;
@@ -14,20 +15,29 @@ class LibraryTest extends CIUnitTestCase
 		parent::setUp();
 
 		$this->mockPushover();
+
+		$this->message = $this->pushover->message([
+			'message'   => 'Hello world.',
+			'title'     => 'Simple',
+		]);
 	}
 
 	public function testSendInvalidMessageFails()
 	{
-		$data = [
-			'message'   => 'Hello world.',
-			'title'     => 'Simple',
-			'url'       => 'bad url',
-		];
-		$data = array_merge($this->config->messageDefaults, $data);
-		
-		$message = new Message($data);
+		$this->message->url = 'bad url';
 
-		$this->assertFalse($message->validate());
-		$this->assertNull($this->pushover->sendMessage($message));
+		$this->assertFalse($this->message->validate());
+		$this->assertNull($this->pushover->sendMessage($this->message));
+	}
+
+	public function testSendMessageThrottles()
+	{
+		$timer = new Timer();
+		$timer->start('throttleTest');
+
+		$this->pushover->sendMessage($this->message);
+		$this->pushover->sendMessage($this->message);
+
+		$this->assertCloseEnough($this->config->throttle, $timer->getElapsedTime('throttleTest'));
 	}
 }
