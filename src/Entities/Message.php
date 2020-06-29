@@ -60,4 +60,44 @@ class Message extends Entity
 			return $var !== null;
 		});
 	}
+
+	/**
+	 * Validates that this Message is appropriate for the API
+	 *
+	 * @param array &$errors  Array to receive error messages
+	 *
+	 * @return bool
+	 */
+	public function validate(array &$errors = []): bool
+	{
+		$errors = [];
+		$data = $this->toPost();
+
+		$validation = service('validation')->setRules([
+			'message'   => 'required|string',
+			'url'       => 'permit_empty|valid_url',
+			'html'      => 'permit_empty|in_list[0,1]',
+			'monospace' => 'permit_empty|in_list[0,1]',
+			'timestamp' => 'permit_empty|is_natural',
+			'priority'  => 'permit_empty|in_list[-2,-1,0,1,2]',
+			'retry'     => 'permit_empty|is_natural|greater_than_equal_to[30]',
+			'expire'    => 'permit_empty|is_natural',
+			'callback'  => 'permit_empty|valid_url',
+		]);
+
+		if (! $validation->run($data))
+		{
+			$errors = $validation->getErrors();
+		}
+
+		// Only one of html/monospace may be us
+		if (! empty($data['html']) && ! empty($data['monospace']))
+		{
+			$errors[] = lang('Pushover.htmlAndMonospace');
+		}
+
+		$validation->reset();
+
+		return empty($errors);
+	}
 }

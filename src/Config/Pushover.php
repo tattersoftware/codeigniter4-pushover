@@ -16,7 +16,7 @@ class Pushover extends BaseConfig
 	 *
 	 * @var boolean
 	 */
-	public $logging = true;
+	public $database = true;
 
 	/**
 	 * Whether failures should exit quietly instead of throwing exceptions

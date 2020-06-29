@@ -1,4 +1,4 @@
-<?php namespace Tatter\Outbox\Models;
+<?php namespace Tatter\Pushover\Models;
 
 use CodeIgniter\Model;
 use Tatter\Pushover\Entities\Message;

@@ -14,6 +14,13 @@ use Tatter\Pushover\Entities\Message;
 class Pushover
 {
 	/**
+	 * Timestamp for next allowed send.
+	 *
+	 * @var int|null
+	 */
+	protected static $throttle;
+
+	/**
 	 * Our configuration instance.
 	 *
 	 * @var \Tatter\Pushover\Config\Pushover
@@ -65,43 +72,6 @@ class Pushover
 	}
 
 	/**
-	 * Validates the message data
-	 *
-	 * @param array $data  Array of values prepped for the API
-	 *
-	 * @return bool
-	 */
-	public function validateMessageData(array $data = []): bool
-	{
-		$this->errors = [];
-
-		$validation = service('validation')->reset()->setRules([
-			'message'   => 'required|string',
-			'url'       => 'permit_empty|valid_url',
-			'html'      => 'permit_empty|in_list[0,1]',
-			'monospace' => 'permit_empty|in_list[0,1]',
-			'timestamp' => 'permit_empty|is_natural',
-			'priority'  => 'permit_empty|in_list[-2,-1,0,1,2]',
-			'retry'     => 'permit_empty|is_natural|greater_than_equal_to[30]',
-			'expire'    => 'permit_empty|is_natural',
-			'callback'  => 'permit_empty|valid_url',
-		]);
-
-		if (! $validation->run($data))
-		{
-			$this->errors = $validation->getErrors();
-		}
-
-		// Only one of html/monospace may be us
-		if (! empty($data['html']) && ! empty($data['monospace']))
-		{
-			$this->errors[] = lang('Pushover.htmlAndMonospace');
-		}
-
-		return empty($this->errors);
-	}
-
-	/**
 	 * Send a Message
 	 *
 	 * @param Message $message  The Message to send
@@ -117,14 +87,14 @@ class Pushover
 			$data['attachment'] = new \CURLFile($message->attachment);
 		}
 
-		if (! $this->validateMessageData())
+		if (! $message->validate($this->errors))
 		{
 			if ($this->config->silent)
 			{
 				return null;
 			}
 
-			throw new PushoverException::forInvalidMessage();
+			throw PushoverException::forInvalidMessage();
 		}
 
 		// Add required auth info
@@ -146,6 +116,12 @@ class Pushover
 	 */
 	public function send(string $method, string $endpoint, array $data = null, bool $multipart = false): ResponseInterface
 	{
+		// Check the throttle
+		if (is_int(self::$throttle) && time() < self::$throttle)
+		{
+			sleep(max(5, time() - self::$throttle));
+		}
+
 		if (empty($data['user']) || empty($data['token']))
 		{
 			if ($this->config->silent)
@@ -153,7 +129,7 @@ class Pushover
 				return null;
 			}
 
-			throw new PushoverException::forMissingAuthentication();
+			throw PushoverException::forMissingAuthentication();
 		}
 
 		if (! is_null($data))

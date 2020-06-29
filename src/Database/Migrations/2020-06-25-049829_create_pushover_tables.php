@@ -1,4 +1,4 @@
-<?php namespace Tatter\Outbox\Database\Migrations;
+<?php namespace Tatter\Pushover\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 

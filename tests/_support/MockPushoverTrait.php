@@ -15,7 +15,7 @@ trait MockPushoverTrait
 	public function mockPushover()
 	{
 		$this->config = new \Tatter\Pushover\Config\Pushover();
-		$this->config->silent = false;
+		$this->config->silent = true;
 
 		$client = Services::curlrequest(['base_uri' => $this->config->baseUrl]);
 
