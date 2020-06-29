@@ -13,11 +13,11 @@ class Message extends Entity
      * when they are accessed.
      */
     protected $casts = [
-        'html'      => 'boolean',
-        'monospace' => 'boolean',
+        'html'      => 'bool',
+        'monospace' => 'bool',
         'priority'  => 'int',
-        'retry'     => 'int',
-        'expire'    => 'int',
+        'retry'     => '?int',
+        'expire'    => '?int',
     ];
 
 	/**
@@ -39,7 +39,7 @@ class Message extends Entity
 	 */
 	public function toPost(): array
 	{
-		return [
+		$data = [
 			'message'    => $this->castAs($this->message, 'string'),
 			'title'      => $this->castAs($this->title, '?string'),
 			'url'        => $this->castAs($this->url, '?string'),
@@ -54,5 +54,10 @@ class Message extends Entity
 			'expire'     => $this->castAs($this->expire, '?int'),
 			'callback'   => $this->castAs($this->callback, '?string'),
 		];
+
+		// Remove any null values
+		return array_filter($data, function($var) {
+			return $var !== null;
+		});
 	}
 }

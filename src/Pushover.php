@@ -3,6 +3,7 @@
 use CodeIgniter\Config\BaseConfig;
 use CodeIgniter\HTTP\CURLRequest;
 use CodeIgniter\HTTP\ResponseInterface;
+use Tatter\Pushover\Exceptions\PushoverException;
 use Tatter\Pushover\Entities\Message;
 
 /**
@@ -20,6 +21,13 @@ class Pushover
 	protected $config;
 
 	/**
+	 * Error messages from the last call
+	 *
+	 * @var array
+	 */
+	protected $errors = [];
+
+	/**
 	 * Store the configuration and initialize the library.
 	 *
 	 * @param BaseConfig  $config
@@ -29,6 +37,19 @@ class Pushover
 	{
 		$this->config = $config;
 		$this->client = $client;
+	}
+
+	/**
+	 * Get and clear any error messsages
+	 *
+	 * @return array  Any error messages from the last call
+	 */
+	public function getErrors(): array
+	{
+		$errors       = $this->errors;
+		$this->errors = [];
+
+		return $errors;
 	}
 
 	/**
@@ -47,30 +68,37 @@ class Pushover
 	 * Validates the message data
 	 *
 	 * @param array $data  Array of values prepped for the API
-	 * @param array &$errors  Variable to plave error messages in on failure
 	 *
 	 * @return bool
 	 */
-	public function validateMessage(array $data = [], array &$errors = []): bool
+	public function validateMessageData(array $data = []): bool
 	{
-		$validation = service('validation')->setRules([
+		$this->errors = [];
+
+		$validation = service('validation')->reset()->setRules([
 			'message'   => 'required|string',
-			'url'       => 'valid_url',
-			'html'      => 'in_list[0,1]',
-			'monospace' => 'in_list[0,1]',
-			'timestamp' => 'is_natural',
-			'priority'  => 'in_list[-2,-1,0,1,2]',
-			'retry'     => 'is_natural|greater_than_equal_to[30]',
-			'expire'    => 'is_natural',
-			'callback'  => 'valid_url',
+			'url'       => 'permit_empty|valid_url',
+			'html'      => 'permit_empty|in_list[0,1]',
+			'monospace' => 'permit_empty|in_list[0,1]',
+			'timestamp' => 'permit_empty|is_natural',
+			'priority'  => 'permit_empty|in_list[-2,-1,0,1,2]',
+			'retry'     => 'permit_empty|is_natural|greater_than_equal_to[30]',
+			'expire'    => 'permit_empty|is_natural',
+			'callback'  => 'permit_empty|valid_url',
 		]);
 
 		if (! $validation->run($data))
 		{
-			$errors = array_merge($errors, $validation->getErrors());
+			$this->errors = $validation->getErrors();
 		}
-		
-		return empty($errors);
+
+		// Only one of html/monospace may be us
+		if (! empty($data['html']) && ! empty($data['monospace']))
+		{
+			$this->errors[] = lang('Pushover.htmlAndMonospace');
+		}
+
+		return empty($this->errors);
 	}
 
 	/**
@@ -78,9 +106,9 @@ class Pushover
 	 *
 	 * @param Message $message  The Message to send
 	 *
-	 * @return string
+	 * @return ResponseInterface|null
 	 */
-	public function sendMessage(Message $message): ResponseInterface
+	public function sendMessage(Message $message): ?ResponseInterface
 	{
 		$data = $message->toPost();
 		
@@ -88,7 +116,17 @@ class Pushover
 		{
 			$data['attachment'] = new \CURLFile($message->attachment);
 		}
-		
+
+		if (! $this->validateMessageData())
+		{
+			if ($this->config->silent)
+			{
+				return null;
+			}
+
+			throw new PushoverException::forInvalidMessage();
+		}
+
 		// Add required auth info
 		$data['user']  = $this->config->user;
 		$data['token'] = $this->config->token;
@@ -108,6 +146,16 @@ class Pushover
 	 */
 	public function send(string $method, string $endpoint, array $data = null, bool $multipart = false): ResponseInterface
 	{
+		if (empty($data['user']) || empty($data['token']))
+		{
+			if ($this->config->silent)
+			{
+				return null;
+			}
+
+			throw new PushoverException::forMissingAuthentication();
+		}
+
 		if (! is_null($data))
 		{
 			$this->client->setForm($data, $multipart);

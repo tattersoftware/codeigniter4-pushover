@@ -1,4 +1,4 @@
-<?php namespace Tatter\Pushover;
+<?php namespace Tatter\Pushover\Test;
 
 use CodeIgniter\HTTP\ResponseInterface;
 use Tatter\Pushover\Exceptions\PushoverException;

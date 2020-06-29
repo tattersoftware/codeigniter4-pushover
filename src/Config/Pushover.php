@@ -19,6 +19,13 @@ class Pushover extends BaseConfig
 	public $logging = true;
 
 	/**
+	 * Whether failures should exit quietly instead of throwing exceptions
+	 *
+	 * @var boolean
+	 */
+	public $silent = true;
+
+	/**
 	 * Base URL for cURL requests
 	 *
 	 * @var string
