@@ -1,5 +1,7 @@
 <?php namespace Tatter\Pushover\Test;
 
+use CodeIgniter\HTTP\Exceptions\HTTPException;
+use CodeIgniter\HTTP\Response;
 use CodeIgniter\HTTP\ResponseInterface;
 use Tatter\Pushover\Exceptions\PushoverException;
 use Tatter\Pushover\Pushover;
@@ -24,7 +26,7 @@ class MockPushover extends Pushover
 	 *
 	 * @var array
 	 */
-	protected $endpoints = ['messages.json'];
+	public $endpoints = ['messages.json'];
 
 	/**
 	 * (Re)set the throttle
@@ -38,11 +40,25 @@ class MockPushover extends Pushover
 			$seconds += time();
 		}
 
-		self:$throttle = $seconds;
+		self::$throttle = $seconds;
 	}
 
 	/**
-	 * Send an API request
+	 * Generates a random request UUID
+	 */
+	protected static function generateUid()
+	{
+		$chunks = str_split(bin2hex(random_bytes(16)), 4);
+		
+		return $chunks[0] . $chunks[1] . '-' .
+			$chunks[2] . '-' .
+			$chunks[3] . '-' .
+			$chunks[4] . '-' .
+			$chunks[5] . $chunks[6]. $chunks[7];
+	}
+
+	/**
+	 * Fake an API request
 	 *
 	 * @param string $method  HTTP method to use
 	 * @param string $endpoint  API endpoint over the base URL
@@ -53,20 +69,40 @@ class MockPushover extends Pushover
 	 */
 	public function send(string $method, string $endpoint, array $data = null, bool $multipart = false): ResponseInterface
 	{
-		// Validate the endpoint
+		// Create a new response
+		$response = new Response(config('App'));
+
+		// Vary response data based on desired outcome
 		if (! in_array($endpoint, $this->endpoints))
 		{
-			throw new PushoverException('Invalid endpoint: ' . $endpoint);
+			$response->setStatusCode(404, 'Not Found');
+			$body = [
+				'status'  => 0,
+				'errors' => ['resource not found'],
+			];
+		}
+		elseif ($this->success)
+		{
+			$response->setStatusCode(200);
+			$body = [
+				'status'  => 1,
+				'request' => self::generateUid()
+			];
+		}
+		else
+		{
+			$response->setStatusCode(200);
+			$body = [
+				'status' => 0,
+				'field'  => 'invalid',
+				'errors' => ['field is invalid'],
+			];		
 		}
 
-		$response = service('response');
-
-		/*
-		{"status":1,"request":"647d2300-702c-4b38-8b2f-d56326ae460b"}
-
-		{"user":"invalid","errors":["user identifier is invalid"], "status":0,"request":"5042853c-402d-4a18-abcb-168734a801de"}
-		*/
-
+		$body['request'] = self::generateUid();
+		
+		$response->setBody(json_encode($body));
 		return $response;
 	}
+	
 }

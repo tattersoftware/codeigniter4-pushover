@@ -28,7 +28,10 @@ class Services extends \Config\Services
 
 		if (is_null($client))
 		{
-			$client = \Config\Services::curlrequest(['base_uri' => $config->baseUrl]);
+			$client = \Config\Services::curlrequest([
+				'base_uri'    => $config->baseUrl,
+				'http_errors' => false,
+			]);
 		}
 
 		return new Pushover($config, $client);

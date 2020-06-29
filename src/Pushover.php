@@ -68,9 +68,9 @@ class Pushover
 	 *
 	 * @param Message $message  The Message to send
 	 *
-	 * @return Message|null
+	 * @return array  The result
 	 */
-	public function sendMessage(Message $message): Message
+	public function sendMessage(Message &$message): array
 	{
 		$data = $message->toPost();
 		
@@ -105,8 +105,8 @@ class Pushover
 		{
 			model(MessageModel::class)->insert($message);
 		}
-
-		return $message;
+		
+		return $result;
 	}
 
 	//--------------------------------------------------------------------
@@ -208,10 +208,10 @@ class Pushover
 
 		// Decode the body
 		$result = json_decode($body, true);
-		if ($result === false || ! isset($result['status']) || ! isset($result['request']))
+		if ($result === false || ! isset($result['status']))
 		{
-			$this->errors[] = lang('Pushover.invalidResponse', $body);
-			throw new PushoverException(lang('Pushover.invalidResponse', $body));
+			$this->errors[] = lang('Pushover.invalidResponse', [$body]);
+			throw new PushoverException(lang('Pushover.invalidResponse', [$body]));
 		}
 
 		// Harvest any errors
@@ -228,21 +228,21 @@ class Pushover
 		if (! $validation->run($result))
 		{
 			$this->errors = array_merge($this->errors, $validation->getErrors());
-			throw new PushoverException(lang('Pushover.invalidResponse', $body));
+			throw new PushoverException(lang('Pushover.invalidResponse', [$body]));
 		}
 
 		// Check for failing status
 		if ($result['status'] !== 1)
 		{
-			$this->errors[] = lang('Pushover.invalidStatus', $result['status']);
-			throw new PushoverException(lang('Pushover.invalidStatus', $result['status']));		
+			$this->errors[] = lang('Pushover.invalidStatus', [$result['status']]);
+			throw new PushoverException(lang('Pushover.invalidStatus', [$result['status']]));		
 		}
 
 		// Handle the HTTP response code
 		if ($response->getStatusCode() !== 200)
 		{
-			$this->errors[] = lang('Pushover.invalidCode', $response->getStatusCode());
-			throw new PushoverException(lang('Pushover.invalidCode', $response->getStatusCode()));
+			$this->errors[] = lang('Pushover.invalidCode', [$response->getStatusCode()]);
+			throw new PushoverException(lang('Pushover.invalidCode', [$response->getStatusCode()]));
 		}
 
 		return $result;

@@ -16,11 +16,14 @@ trait MockPushoverTrait
 	{
 		$this->config = new \Tatter\Pushover\Config\Pushover();
 
-		$this->config->throttle = 2;
+		$this->config->throttle = 3;
 		$this->config->user     = 'abcdef';
 		$this->config->token    = 'xyz123';
 
-		$client = Services::curlrequest(['base_uri' => $this->config->baseUrl]);
+		$client = Services::curlrequest([
+			'base_uri'    => $this->config->baseUrl,
+			'http_errors' => false,
+		]);
 
 		$this->pushover = new MockPushover($this->config, $client);
 

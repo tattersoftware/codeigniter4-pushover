@@ -1,8 +1,11 @@
 <?php
 
 use CodeIgniter\Test\FeatureResponse;
+use Config\Services;
 use Tests\Support\DatabaseTestCase;
+use Tatter\Pushover\Exceptions\PushoverException;
 use Tatter\Pushover\Entities\Message;
+use Tatter\Pushover\Pushover;
 
 class MessageTest extends DatabaseTestCase
 {
@@ -20,21 +23,60 @@ class MessageTest extends DatabaseTestCase
 		]);
 	}
 
-	public function testSendSends()
+	public function testSendIsSuccessful()
 	{
 		if (empty($this->config->user) || empty($this->config->token))
 		{
 			$this->markTestSkipped('Unable to run live tests without credentials');
 		}
 
-		$response = new FeatureResponse($this->message->send());
+		$result = $this->pushover->sendMessage($this->message);
 
-		$response->assertOk();
-		$response->assertStatus(200);
+		$this->assertEquals(1, $result['status']);
+		$this->assertNotEmpty($result['request']);
+	}
 
-		$object = json_decode($response->response->getBody());
-		$this->assertIsObject($object);
+	public function testSendThrowsExceptionOnFailure()
+	{
+		if (empty($this->config->user) || empty($this->config->token))
+		{
+			$this->markTestSkipped('Unable to run live tests without credentials');
+		}
 
-		$this->assertEquals(1, $object->status);
+		$config = new \Tatter\Pushover\Config\Pushover();
+		$config->user = 'TotallyMadeUpToken';
+
+		$pushover = new Pushover($config, Services::curlrequest(['base_uri' => $config->baseUrl]));
+
+		$this->expectException(PushoverException::class);
+		$this->expectExceptionMessage(lang('Pushover.invalidStatus', [0]));
+
+		$result = $pushover->sendMessage($this->message);
+	}
+
+	public function testSendSavesErrorsOnFailure()
+	{
+		if (empty($this->config->user) || empty($this->config->token))
+		{
+			$this->markTestSkipped('Unable to run live tests without credentials');
+		}
+
+		$config = new \Tatter\Pushover\Config\Pushover();
+		$config->user = 'TotallyMadeUpToken';
+
+		$pushover = new Pushover($config, Services::curlrequest(['base_uri' => $config->baseUrl]));
+
+		try
+		{
+			$pushover->sendMessage($this->message);
+		}
+		catch (\Throwable $e)
+		{			
+		}
+
+		$errors = $pushover->getErrors();
+		
+		$this->assertCount(2, $errors);
+		$this->assertEquals(lang('Pushover.invalidStatus', [0]), $errors[1]);
 	}
 }

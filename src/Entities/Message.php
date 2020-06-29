@@ -25,7 +25,11 @@ class Message extends Entity
 	 */
 	public function send()
 	{
-		service('pushover')->sendMessage($this);
+		$result = service('pushover')->sendMessage($this);
+		
+		// Update the Message with response data
+		$this->status  = $result['status'];
+		$this->request = $result['request'];
 	}
 
 	/**
