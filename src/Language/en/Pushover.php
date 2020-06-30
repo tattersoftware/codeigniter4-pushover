@@ -2,7 +2,7 @@
 
 return [
 	// Auth
-	'missingAuthentication' => 'Missing authentication data. See Config/Pushover user & token.',
+	'missingAuthField' => 'Missing authentication field: {0}. See Config/Pushover.',
 
 	// Validation
 	'invalidMessage'   => 'The Message format is invalid.',

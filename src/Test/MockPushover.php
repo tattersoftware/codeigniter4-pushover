@@ -24,7 +24,7 @@ class MockPushover extends Pushover
 	 *
 	 * @param int $seconds
 	 */
-	public static function throttle(int $seconds = null)
+	public static function setThrottle(int $seconds = null)
 	{
 		if (! is_null($seconds))
 		{

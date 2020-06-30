@@ -15,13 +15,17 @@ trait MockPushoverTrait
 	public function mockPushover()
 	{
 		$this->config = new \Tatter\Pushover\Config\Pushover();
-		$this->config->silent = true;
+
+		$this->config->silent   = true;
+		$this->config->throttle = 2;
+		$this->config->user     = 'abcdef';
+		$this->config->token    = 'xyz123';
 
 		$client = Services::curlrequest(['base_uri' => $this->config->baseUrl]);
 
 		$this->pushover = new MockPushover($this->config, $client);
 
 		// Reset the throttle
-		MockPushover::throttle();
+		MockPushover::setThrottle();
 	}
 }

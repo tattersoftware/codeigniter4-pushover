@@ -46,18 +46,9 @@ class Pushover
 		$this->client = $client;
 	}
 
-	/**
-	 * Get and clear any error messsages
-	 *
-	 * @return array  Any error messages from the last call
-	 */
-	public function getErrors(): array
-	{
-		$errors       = $this->errors;
-		$this->errors = [];
-
-		return $errors;
-	}
+	//--------------------------------------------------------------------
+	// MESSAGES
+	//--------------------------------------------------------------------
 
 	/**
 	 * Create a new Message from the supplied $data
@@ -98,21 +89,82 @@ class Pushover
 		}
 
 		// Add required auth info
-		$data['user']  = $this->config->user;
-		$data['token'] = $this->config->token;
+		$auth = $this->auth(['user', 'token']);
+		if (empty($auth))
+		{
+			return null;
+		}
 
+		$data = array_merge($data, $auth);
+
+		// Check the throttle
+		$this->throttle();
+
+		return $this->send('post', 'messages.json', $data, (bool) $message->attachment);
+	}
+
+	//--------------------------------------------------------------------
+	// UTILITY
+	//--------------------------------------------------------------------
+
+	/**
+	 * Get and clear any error messsages
+	 *
+	 * @return array  Any error messages from the last call
+	 */
+	public function getErrors(): array
+	{
+		$errors       = $this->errors;
+		$this->errors = [];
+
+		return $errors;
+	}
+
+	/**
+	 * Return array of auth data
+	 *
+	 * @param $fields  The requested auth fields
+	 *
+	 * @return array|null
+	 */
+	protected function auth(array $fields = ['user', 'token']): ?array
+	{
+		$return = [];
+
+		foreach ($fields as $field)
+		{
+			if (empty($this->config->$field))
+			{
+				if ($this->config->silent)
+				{
+					return null;
+				}
+
+				throw PushoverException::forMissingAuthField($field);
+			}
+
+			$return[$field] = $this->config->$field;
+		}
+		
+		return $return;
+	}
+
+	/**
+	 * Check and set the throttle
+	 *
+	 * @param $fields  The requested auth fields
+	 */
+	protected function throttle()
+	{
 		// Check the throttle
 		if (is_int(self::$throttle) && time() < self::$throttle)
 		{
-			sleep(max(5, time() - self::$throttle));
+			// Sleep up until the time specified by $throttle
+			sleep(min(10, self::$throttle - time()));
 		}
 
-		$result = $this->send('post', 'messages.json', $data, (bool) $message->attachment);
-
-		// Set the throttle
+		// Set the throttle to the new time
 		self::$throttle = time() + $this->config->throttle;
-
-		return $result;
 	}
 
 	/**
@@ -127,16 +179,6 @@ class Pushover
 	 */
 	public function send(string $method, string $endpoint, array $data = null, bool $multipart = false): ResponseInterface
 	{
-		if (empty($data['user']) || empty($data['token']))
-		{
-			if ($this->config->silent)
-			{
-				return null;
-			}
-
-			throw PushoverException::forMissingAuthentication();
-		}
-
 		if (! is_null($data))
 		{
 			$this->client->setForm($data, $multipart);

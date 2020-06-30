@@ -11,4 +11,9 @@ class PushoverException extends \RuntimeException
     {
         return new self(lang('Pushover.invalidMessage'));
     }
+
+    public static function forMissingAuthField($field)
+    {
+        return new self(lang('Pushover.missingAuthField', [$field]));
+    }
 }

@@ -16,10 +16,25 @@ class LibraryTest extends CIUnitTestCase
 
 		$this->mockPushover();
 
+		// Create a sample message
 		$this->message = $this->pushover->message([
 			'message'   => 'Hello world.',
 			'title'     => 'Simple',
 		]);
+	}
+
+	public function testMessageReturnsMessage()
+	{
+		$result = $this->pushover->message();
+
+		$this->assertInstanceOf(Message::class, $result);
+	}
+
+	public function testMessageUsesParameters()
+	{
+		$message = $this->pushover->message(['title' => 'zoinks']);
+
+		$this->assertEquals('zoinks', $message->title);
 	}
 
 	public function testSendInvalidMessageFails()
