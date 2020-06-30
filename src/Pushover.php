@@ -76,7 +76,7 @@ class Pushover
 		
 		if ($message->attachment)
 		{
-			$data['attachment'] = new \CURLFile($message->attachment);
+			$data['attachment'] = new \CURLFile($message->attachment, mime_content_type($message->attachment));
 		}
 
 		if (! $message->validate($this->errors))
@@ -174,7 +174,7 @@ class Pushover
 	 * @param string $method  HTTP method to use
 	 * @param string $endpoint  API endpoint over the base URL
 	 * @param array|null $data  Array of post data for the API
-	 * @param bool $multipart  Whether ot send form data with file support
+	 * @param bool $multipart  Whether to send form data with file support
 	 *
 	 * @return ResponseInterface
 	 */

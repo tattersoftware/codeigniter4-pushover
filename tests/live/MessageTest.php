@@ -23,6 +23,21 @@ class MessageTest extends DatabaseTestCase
 		]);
 	}
 
+	public function testSendWithAttachmentIsSuccessful()
+	{
+		if (empty($this->config->user) || empty($this->config->token))
+		{
+			$this->markTestSkipped('Unable to run live tests without credentials');
+		}
+
+		$this->message->attachment = SUPPORTPATH . 'cat.jpg';
+
+		$result = $this->pushover->sendMessage($this->message);
+		
+		$this->assertEquals(1, $result['status']);
+		$this->assertNotEmpty($result['request']);
+	}
+
 	public function testSendIsSuccessful()
 	{
 		if (empty($this->config->user) || empty($this->config->token))
