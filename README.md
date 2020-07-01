@@ -6,7 +6,8 @@ Pushover integration for CodeIgniter 4
 ## Quick Start
 
 1. Install with Composer: `> composer require tatter/pushover`
-2. Send an alert: `service('pushover')->message(['message' => 'Hellow world'])->send();`
+2. Add credentials to **.env** or **Config/Pushover.php**
+3. Send an alert: `service('pushover')->message(['message' => 'Hello world'])->send();`
 
 ## Description
 
