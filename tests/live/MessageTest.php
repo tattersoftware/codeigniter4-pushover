@@ -13,14 +13,30 @@ class MessageTest extends DatabaseTestCase
 	{
 		parent::setUp();
 
-		$this->config   = new \Tatter\Pushover\Config\Pushover();
-		$this->pushover = service('pushover', $this->config);
+		$this->config = new \Tatter\Pushover\Config\Pushover();
+		$this->client = Services::curlrequest([
+			'base_uri'    => $this->config->baseUrl,
+			'http_errors' => false,
+		], null, null, false);
 
 		// Create a sample message
-		$this->message = $this->pushover->message([
-			'message'   => 'Hello world.',
-			'title'     => 'Simple',
-		]);
+		$this->message = new Message($this->config->messageDefaults);
+		$this->message->message = 'Hello world.';
+		$this->message->title   = 'Simple';
+	}
+
+	public function testSendIsSuccessful()
+	{
+		if (empty($this->config->user) || empty($this->config->token))
+		{
+			$this->markTestSkipped('Unable to run live tests without credentials');
+		}
+
+		$pushover = new Pushover($this->config, $this->client);
+		$result   = $pushover->sendMessage($this->message);
+
+		$this->assertEquals(1, $result['status']);
+		$this->assertNotEmpty($result['request']);
 	}
 
 	public function testSendWithAttachmentIsSuccessful()
@@ -32,20 +48,8 @@ class MessageTest extends DatabaseTestCase
 
 		$this->message->attachment = SUPPORTPATH . 'cat.jpg';
 
-		$result = $this->pushover->sendMessage($this->message);
-		
-		$this->assertEquals(1, $result['status']);
-		$this->assertNotEmpty($result['request']);
-	}
-
-	public function testSendIsSuccessful()
-	{
-		if (empty($this->config->user) || empty($this->config->token))
-		{
-			$this->markTestSkipped('Unable to run live tests without credentials');
-		}
-
-		$result = $this->pushover->sendMessage($this->message);
+		$pushover = new Pushover($this->config, $this->client);
+		$result   = $pushover->sendMessage($this->message);
 
 		$this->assertEquals(1, $result['status']);
 		$this->assertNotEmpty($result['request']);
@@ -58,10 +62,8 @@ class MessageTest extends DatabaseTestCase
 			$this->markTestSkipped('Unable to run live tests without credentials');
 		}
 
-		$config = new \Tatter\Pushover\Config\Pushover();
-		$config->user = 'TotallyMadeUpToken';
-
-		$pushover = new Pushover($config, Services::curlrequest(['base_uri' => $config->baseUrl]));
+		$this->config->user = 'TotallyMadeUpToken';
+		$pushover = new Pushover($this->config, $this->client);
 
 		$this->expectException(PushoverException::class);
 		$this->expectExceptionMessage(lang('Pushover.invalidStatus', [0]));
@@ -76,10 +78,8 @@ class MessageTest extends DatabaseTestCase
 			$this->markTestSkipped('Unable to run live tests without credentials');
 		}
 
-		$config = new \Tatter\Pushover\Config\Pushover();
-		$config->user = 'TotallyMadeUpToken';
-
-		$pushover = new Pushover($config, Services::curlrequest(['base_uri' => $config->baseUrl]));
+		$this->config->user = 'TotallyMadeUpToken';
+		$pushover = new Pushover($this->config, $this->client);
 
 		try
 		{

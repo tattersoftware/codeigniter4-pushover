@@ -10,7 +10,7 @@ return [
 
 	// API
 	'emptyResponse'   => 'The API response was empty.',
-	'invalidResponse' => 'Unable to interpret the API response: {0}',
+	'invalidResponse' => 'Unable to interpret the API response: {0}.',
 	'invalidStatus'   => 'The API returned a failing status: {0}.',
 	'invalidCode'     => 'The API call failed with response code: {0}.',
 ];

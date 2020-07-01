@@ -20,12 +20,12 @@ trait MockPushoverTrait
 		$this->config->user     = 'abcdef';
 		$this->config->token    = 'xyz123';
 
-		$client = Services::curlrequest([
+		$this->client = Services::curlrequest([
 			'base_uri'    => $this->config->baseUrl,
 			'http_errors' => false,
-		]);
+		], null, null, false);
 
-		$this->pushover = new MockPushover($this->config, $client);
+		$this->pushover = new MockPushover($this->config, $this->client);
 
 		// Reset the throttle
 		MockPushover::setThrottle();
