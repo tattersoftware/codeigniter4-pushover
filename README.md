@@ -77,3 +77,9 @@ array (2) [
     1 => string (37) "The API returned a failing status: 0."
 ]
 ```
+
+## Development
+
+Currently this module only supports the `messages.json` endpoint (including attachments),
+but more endpoints will be added in the future. If you have a specific request please open
+an issue (or PR!) for a new feature request.
